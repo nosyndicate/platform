@@ -14,7 +14,9 @@ MAX_PLATWIDTH = max(PLATFORMS_WIDTH)
 MAX_WIDTH = sum(PLATFORMS_WIDTH + GAPS)
 MAX_GAP = max(GAPS)
 
+# Duration of a time unit, some action may last several time unit
 DT = 0.05
+
 MAX_DX = 100.0
 MAX_DY = 200.0
 # Max x-axis velocity for player on the platform

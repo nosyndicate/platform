@@ -1,3 +1,11 @@
+"""
+OpenAI Gym implementation of platform domain, used for research of
+Reinforcment Learning in parameterized action. See paper
+"Reinforcement Learning with Parameterized Actions" by Warwick Masson,
+Pravesh Ranchod and George Konidaris
+
+Original code is at https://github.com/WarwickMasson/aaai-platformer
+"""
 import logging
 from os import path
 
@@ -47,12 +55,20 @@ class PlatformEnv(gym.Env):
             spaces.Box(np.array([-1]), np.array([+1]))
         ))
 
-        # TODO (ewei) original code have implicit state
-        # need to figure where are they, in addition, the feature using
-        # MAX_WIDTH is no accurate, need to figure out what's the real
-        # value, or is the inaccurate value harmless.
+        # The following feature boundary is getting from original code
+        # using SHIFT_VECTOR, SCALE_VECTOR, and function scale_state.
+        # Since the (state + SHIFT_VECTOR) / SCALE_VECTOR is in [0, 1]
+        # We can derive that
+        # 0 - SHIFT_VECTOR < state < SCALE_VECTOR - SHIFT_VECTOR,
+        # Thus, we have the boundary as follow
+
+        # Also, note that in original learn.py code, the two policies,
+        # for action determination and parameter determination using
+        # different set of features (see function action_features and
+        # parameter_features in FixedSarsaAgent), in here, we make them
+        # a single feature vector.
         high = np.array([MAX_WIDTH, 100.0, MAX_WIDTH, 30.0])
-        low = np.array([0.0, 0.0, 0.0, -30.0])
+        low = np.array([-self.world.player.size[0], 0.0, 0.0, -30.0])
         self.observation_space = spaces.Box(low, high)
 
 
