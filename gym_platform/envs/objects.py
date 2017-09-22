@@ -34,6 +34,8 @@ CHECK_SCALE = False
 GRAVITY = 9.8
 
 
+
+
 def point(x, y):
     """
     Return a numpy array represent a point in 2D surface.
@@ -151,6 +153,10 @@ class Player(Agent):
         # To identify the start position, used for rendering
         self.start_position = self.position.copy()
 
+        # Some constant for action
+        self.hop_dy0 = 35.0
+        self.leap_dy0 = 25.0
+
     def reset(self):
         """
         Reset the location of agent.
@@ -227,13 +233,13 @@ class Player(Agent):
         """
         Jump high to a position.
         """
-        self.jump_to(diffx, 35.0, HOP_DEV)
+        self.jump_to(diffx, self.hop_dy0, HOP_DEV)
 
     def leap_to(self, diffx):
         """
         Jump over a gap.
         """
-        self.jump_to(diffx, 25.0, LEAP_DEV)
+        self.jump_to(diffx, self.leap_dy0, LEAP_DEV)
 
     def fall(self):
         """
@@ -305,14 +311,13 @@ class PlatformWorld(object):
         self.x_pos = 0.0
         self.player = Player()
 
-        # Define platforms
-        # TODO (ewei) seems redundant, could do better
+        # Define platforms, we have three of them
         self.platforms = []
         for index in range(3):
             self.platforms.append(Platform(
                 PLATFORMS_X[index], PLATFORMS_Y[index], PLATFORMS_WIDTH[index]))
 
-        # Create enemies
+        # Create enemies, we have two of them
         self.enemies = []
         for index in range(2):
             self.enemies.append(Agent(self.platforms[index]))
@@ -328,6 +333,34 @@ class PlatformWorld(object):
         for enemy in self.enemies:
             enemy.reset()
         self.player.reset()
+        return self.get_state()
+
+    def platform_features(self, state):
+        """
+        This function returns the set of additional feature for
+        determine policy parameters in original code.
+        """
+        xpos = state[0]
+        if xpos < PLATFORMS_WIDTH[0] + GAPS[0]:
+            pos = 0.0
+            wd1 = PLATFORMS_WIDTH[0]
+            wd2 = PLATFORMS_WIDTH[1]
+            gap = GAPS[0]
+            diff = PLATFORMS_Y[1] - PLATFORMS_Y[0]
+        elif xpos < PLATFORMS_WIDTH[0] + GAPS[0] + PLATFORMS_WIDTH[1] + GAPS[1]:
+            pos = PLATFORMS_WIDTH[0] + GAP1
+            wd1 = PLATFORMS_WIDTH[1]
+            wd2 = PLATFORMS_WIDTH[2]
+            gap = GAPS[1]
+            diff = PLATFORMS_Y[2] - PLATFORMS_Y[1]
+        else:
+            pos = PLATFORMS_WIDTH[0] + GAPS[0] + PLATFORMS_WIDTH[1] + GAPS[1]
+            wd1 = PLATFORMS_WIDTH[2]
+            wd2 = 0.0
+            gap = 0.0
+            diff = 0.0
+        return [wd1 / MAX_PLATWIDTH, wd2 / MAX_PLATWIDTH, gap / MAX_GAP, pos / MAX_WIDTH, diff / MAX_HEIGHT]
+
 
     def get_state(self):
         """
@@ -345,6 +378,8 @@ class PlatformWorld(object):
             enemy.dx
         ])
 
+        extra_features = self.platform_features(state)
+        state = np.append(state, extra_features)
         return state
 
     def on_platforms(self):
