@@ -302,8 +302,6 @@ class PlatformEnv(gym.Env):
         action (list): First is the discrete action, the rest is the parameters
             for all the discrete actions.
         """
-
-        print('call_render is {}'.format(self.call_render))
         # TODO (ewei), action dispatcher seems stupid
         action_str = ACTION_LOOKUP[action[0]]
         action_param = action[action[0] + 1]
