@@ -37,7 +37,6 @@ from objects import (
 FPS = 100
 VIEWER_WIDTH = int(MAX_WIDTH)
 VIEWER_HEIGHT = 300
-
 ACTION_LOOKUP = {
     0: 'run',
     1: 'hop',
@@ -52,14 +51,21 @@ class PlatformEnv(gym.Env):
         'video.frame_per_second': FPS
     }
 
-    def __init__(self):
+    def __init__(self, call_render=False):
         """
         Create the world and setup the action and observation spaces
+
+        Parameters
+        ----------
+        call_render (bool): Due to the special structure of action (a action
+            can last few step, and if we render, we should render every
+            steps.), we need to call the render function inside our step
+            function. Thus, we use this render flag to control this.
         """
         self._seed()
         self.viewer = None
+        self.call_render = call_render
 
-        # self.world = PlatformWorld()
         self._create_world()
         self._reset()
 
@@ -299,21 +305,21 @@ class PlatformEnv(gym.Env):
         # TODO (ewei), action dispatcher seems stupid
         action_str = ACTION_LOOKUP[action[0]]
         action_param = action[action[0] + 1]
-        # state, reward, end_episode, step = self.world.step((action_str, action_param), self)
+        # Record the position before the step for later reward computation
+        self.x_pos = self.player.position[0]
         done = False
         step_unfinished = True
         action = (action_str, action_param)
-        # Record the position before the step for later reward computation
-        self.x_pos = self.player.position[0]
         step = 0
-        difft = 1.0
+        step_duration = 1.0
         # Keep updating until we finish the selected action
         while step_unfinished:
-            self._render()
+            if self.call_render:
+                self.render()
             if action_str == 'run':
                 reward, done = self.update(('run', abs(action_param)), DT)
-                difft -= DT
-                step_unfinished = difft > 0
+                step_duration -= DT
+                step_unfinished = step_duration > 0
             elif action_str in ['jump', 'hop', 'leap']:
                 reward, done = self.update(action)
                 step_unfinished = not self.on_platforms()
@@ -340,6 +346,10 @@ class PlatformEnv(gym.Env):
         return self.get_state()
 
     def _vertices(self, position, size):
+        """
+        Take the position and size and output the coordinates of the
+        polygon.
+        """
         left, right, top, bottom = \
             position[0], position[0] + size[0], position[1], position[1] + size[1]
         v = [(left, bottom), (left, top), (right, top), (right, bottom)]

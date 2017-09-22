@@ -3,10 +3,9 @@ import gym
 import time
 import numpy as np
 
-env = platform_env.PlatformEnv()
+env = platform_env.PlatformEnv(call_render=True)
 env.reset()
 for index in range(1000):
-    env.render()
     #print("rendered again " + str(_));
     # stand still
     # action = tuple([0, np.array([0]), np.array([0]), np.array([0])])
