@@ -126,7 +126,7 @@ class PlatformEnv(gym.Env):
         The entities are setup and added to a space.
         """
         self.x_pos = 0.0
-        self.player = Player()
+        self.player = Player(self.np_random)
 
         # Define platforms, we have three of them
         self.platforms = []
@@ -137,7 +137,7 @@ class PlatformEnv(gym.Env):
         # Create enemies, we have two of them
         self.enemies = []
         for index in range(2):
-            self.enemies.append(Agent(self.platforms[index]))
+            self.enemies.append(Agent(self.platforms[index], self.np_random))
 
         # Used to record the position of all agents
         self.states = []

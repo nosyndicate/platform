@@ -1,5 +1,4 @@
 import numpy as np
-from numpy.random import uniform
 
 # Parameters for the platform
 PLATFORMS_WIDTH = [250, 275, 50]
@@ -97,15 +96,17 @@ class Agent(object):
     """
     size = vector(20.0, 30.0)
 
-    def __init__(self, platform):
+    def __init__(self, platform, random):
         """
         Initialize the agent on the platform.
 
         Parameters
         ----------
         platform (Platform): The platform this agent belong to.
+        random (np.random.RandomState): random state to sample noise
         """
         self.platform = platform
+        self.random = random
 
         # Set the status of agent
         self.reset()
@@ -140,7 +141,7 @@ class Agent(object):
         if not self.leftmost < self.position[0] < self.rightmost:
             self.dx *= -1
         # Add some noise to agent's action, e.g. velocity on x-axis
-        self.dx += np.random.normal(0.0, ENEMY_NOISE * dt)
+        self.dx += self.random.normal(0.0, ENEMY_NOISE * dt)
         # Make sure the speed is in valid range.
         self.dx = bound(self.dx, -ENEMY_SPEED, ENEMY_SPEED)
         # Update the position of agent
@@ -155,10 +156,16 @@ class Player(Agent):
     """
     velocity_decay = 0.99
 
-    def __init__(self):
+    def __init__(self, random):
         """
         Initialize the position to the starting platform.
+
+        Parameters
+        ----------
+        random (np.random.RandomState): random state to sample noise
         """
+        self.random = random
+
         # Set the status of player
         self.reset()
 
@@ -205,7 +212,7 @@ class Player(Agent):
         # Update the velocity using acceleration and time
         self.velocity += accel * dt
         # Add noise to the velocity, same operation for agent.
-        self.velocity[0] -= abs(np.random.normal(0.0, ENEMY_NOISE * dt))
+        self.velocity[0] -= abs(self.random.normal(0.0, ENEMY_NOISE * dt))
         # Make sure the position is in valid range
         self.velocity = bound_vector(self.velocity, MAX_DX, MAX_DY)
         # Make sure the horizontal velocity is always positive, e.g.
@@ -251,7 +258,7 @@ class Player(Agent):
         dx0 = diffx / time - self.velocity[0]
         dx0 = bound(dx0, -MAX_DDX, MAX_DY - dy0)
         if dev > 0:
-            noise = -abs(np.random.normal(0.0, dev, 2))
+            noise = -abs(self.random.normal(0.0, dev, 2))
         else:
             noise = np.zeros((2,))
         velocity_change = vector(dx0, dy0) + noise
