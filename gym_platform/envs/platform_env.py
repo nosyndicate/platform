@@ -11,7 +11,7 @@ from gym import spaces
 from gym.utils import seeding
 import numpy as np
 
-from objects import (
+from gym_platform.envs.objects import (
     Agent,
     Player,
     Platform,
