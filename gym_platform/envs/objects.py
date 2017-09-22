@@ -11,9 +11,9 @@ PLATFORMS_Y = [0.0, 0.0, 0.0]
 GAPS = [225, 235]
 
 # Max of something
+MAX_WIDTH = sum(PLATFORMS_WIDTH + GAPS)
 MAX_HEIGHT = max(1.0, max(PLATFORMS_Y))
 MAX_PLATWIDTH = max(PLATFORMS_WIDTH)
-MAX_WIDTH = sum(PLATFORMS_WIDTH + GAPS)
 MAX_GAP = max(GAPS)
 
 # Duration of a time unit, some action may last several time units
