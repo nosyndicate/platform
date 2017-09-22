@@ -122,7 +122,7 @@ class PlatformEnv(gym.Env):
         action_str = ACTION_LOOKUP[action[0]]
         action_param = action[action[0] + 1]
         # print('action_str is {}, action_param is {}'.format(action_str, action_param))
-        state, reward, end_episode, step = self.world.take_action((action_str, action_param))
+        state, reward, end_episode, step = self.world.take_action((action_str, action_param), self)
         return state, reward, end_episode, {step}
 
     def _reset(self):
@@ -196,6 +196,7 @@ class PlatformEnv(gym.Env):
         # Move the player
         position = self.world.player.position
         start_position = self.world.player.start_position
+        print('position[1] is {}, start_position[1] is {}'.format(position[1], start_position[1]))
         self.player_trans.set_translation(position[0] - start_position[0],
             position[1] - start_position[1])
 

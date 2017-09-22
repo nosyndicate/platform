@@ -173,6 +173,7 @@ class Player(Agent):
         dt (): time interval since last update
         """
         self.position += self.velocity * dt
+        print('player position is {}'.format(self.position))
         self.position[0] = bound(self.position[0], 0.0, MAX_WIDTH)
         self.velocity[0] *= self.velocity_decay
 
@@ -195,6 +196,7 @@ class Player(Agent):
         # Make sure the horizontal velocity is always positive, e.g.
         # Always move forward.
         self.velocity[0] = max(self.velocity[0], 0.0)
+        # print('velocity is {}'.format(self.velocity))
 
     def ground_bound(self):
         """
@@ -207,12 +209,14 @@ class Player(Agent):
         Run for a given power and time.
         """
         if dt > 0:
+            print('run')
             self.accelerate(vector(power / dt, 0.0), dt)
 
     def jump(self, power):
         """
         Jump up for a single step.
         """
+        print('jump')
         self.accelerate(vector(0.0, power / DT))
 
     def jump_to(self, diffx, dy0, dev):
@@ -227,7 +231,9 @@ class Player(Agent):
         else:
             noise = np.zeros((2,))
         accel = vector(dx0, dy0) + noise
+        print('accel is {}'.format(accel))
         self.accelerate(accel / DT)
+        print('accel is done')
 
     def hop_to(self, diffx):
         """
@@ -239,12 +245,14 @@ class Player(Agent):
         """
         Jump over a gap.
         """
+        print('diffx is {}, dy0 is{}'.format(diffx, self.leap_dy0))
         self.jump_to(diffx, self.leap_dy0, LEAP_DEV)
 
     def fall(self):
         """
         Apply gravity.
         """
+        print('fall')
         self.accelerate(vector(0.0, -GRAVITY))
 
     def decollide(self, other):
@@ -286,6 +294,7 @@ class Player(Agent):
         Checks the player is standing on the platform.
         """
         on_y = self.position[1] - platform.position[1] == platform.size[1]
+        # print('value is {}, {}, and {}'.format(self.position[1], platform.position[1], platform.size[1]) )
         return self.above_platform(platform) and on_y
 
     def colliding(self, other):
@@ -398,6 +407,7 @@ class PlatformWorld(object):
         if self.on_platforms():
             if action:
                 action, parameters = action
+                print('action_str is {}, action_param is {}'.format(action, parameters))
                 if action == 'jump':
                     self.player.jump(parameters)
                 elif action == 'run':
@@ -450,14 +460,18 @@ class PlatformWorld(object):
                             self.enemies[0].position.copy(),
                             self.enemies[1].position.copy()])
         self.perform_action(action, dt)
+
         if self.on_platforms():
             self.player.ground_bound()
+
         if self.player.position[0] > self.platforms[1].position[0]:
             enemy = self.enemies[1]
         else:
             enemy = self.enemies[0]
+
         for entity in [self.player, enemy]:
             entity.update(dt)
+
         for platform in self.platforms:
             if self.player.colliding(platform):
                 self.player.decollide(platform)
@@ -465,7 +479,7 @@ class PlatformWorld(object):
         reward = (self.player.position[0] - self.xpos) / self.right_bound()
         return self.terminal_check(reward)
 
-    def take_action(self, action):
+    def take_action(self, action, env):
         ''' Take a full, stabilised update. '''
         end_episode = False
         run = True
@@ -474,6 +488,7 @@ class PlatformWorld(object):
         step = 0
         difft = 1.0
         while run:
+            env.render()
             if act == "run":
                 reward, end_episode = self.update(('run', abs(params)), DT)
                 difft -= DT
@@ -485,5 +500,6 @@ class PlatformWorld(object):
             if end_episode:
                 run = False
             step += 1
+        print('out of while loop')
         state = self.get_state()
         return state, reward, end_episode, step
