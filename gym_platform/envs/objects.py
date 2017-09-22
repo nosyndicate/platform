@@ -513,27 +513,28 @@ class PlatformWorld(object):
         reward = (self.player.position[0] - self.x_pos) / self.right_bound()
         return self.terminal_check(reward)
 
-    def take_action(self, action, env):
+    def step(self, action, env):
         ''' Take a full, stabilised update. '''
         done = False
-        run = True
+        step_unfinished = True
         act, params = action
         # Record the position before the step for later reward computation
         self.x_pos = self.player.position[0]
         step = 0
         difft = 1.0
-        while run:
+        # Keep updating until we finish the selected action
+        while step_unfinished:
             env.render()
             if act == 'run':
                 reward, done = self.update(('run', abs(params)), DT)
                 difft -= DT
-                run = difft > 0
+                step_unfinished = difft > 0
             elif act in ['jump', 'hop', 'leap']:
                 reward, done = self.update(action)
-                run = not self.on_platforms()
+                step_unfinished = not self.on_platforms()
                 action = None
             if done:
-                run = False
+                step_unfinished = False
             step += 1
         state = self.get_state()
         return state, reward, done, step

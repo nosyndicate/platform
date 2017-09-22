@@ -31,6 +31,7 @@ ACTION_LOOKUP = {
     0: 'run',
     1: 'hop',
     2: 'leap',
+    3: 'jump',
 }
 
 
@@ -114,7 +115,7 @@ class PlatformEnv(gym.Env):
         # TODO (ewei), action dispatcher seems stupid
         action_str = ACTION_LOOKUP[action[0]]
         action_param = action[action[0] + 1]
-        state, reward, end_episode, step = self.world.take_action((action_str, action_param), self)
+        state, reward, end_episode, step = self.world.step((action_str, action_param), self)
         return state, reward, end_episode, {step}
 
     def _reset(self):
