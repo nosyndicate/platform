@@ -15,7 +15,6 @@ from objects import (
     Agent,
     Player,
     Platform,
-    PlatformWorld,
     MAX_WIDTH,
     MAX_DX,
     ENEMY_SPEED,
