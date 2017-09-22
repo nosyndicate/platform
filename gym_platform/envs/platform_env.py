@@ -51,7 +51,7 @@ class PlatformEnv(gym.Env):
         # Determine the upperbound and lowerbound of action space
 
         # Bounds for run, see function accelerate and run,
-        # -MAX_DDX < power / dt < MAX_DDX
+        # -MAX_DDX < dx_change / dt < MAX_DDX
         run_lower = np.array([-(MAX_DX - MAX_DX_ON_PLATFORM)])
         run_upper = np.array([MAX_DX - MAX_DX_ON_PLATFORM])
 
@@ -75,13 +75,6 @@ class PlatformEnv(gym.Env):
             spaces.Box(hop_lower, hop_upper),  # HOP
             spaces.Box(leap_lower, leap_upper)  # LEAP
         ))
-
-        print(run_lower)
-        print(run_upper)
-        print(hop_lower)
-        print(hop_upper)
-        print(leap_lower)
-        print(leap_upper)
 
         # The following feature boundary is getting from original code
         # using SHIFT_VECTOR, SCALE_VECTOR, and function scale_state.
@@ -121,7 +114,6 @@ class PlatformEnv(gym.Env):
         # TODO (ewei), action dispatcher seems stupid
         action_str = ACTION_LOOKUP[action[0]]
         action_param = action[action[0] + 1]
-        # print('action_str is {}, action_param is {}'.format(action_str, action_param))
         state, reward, end_episode, step = self.world.take_action((action_str, action_param), self)
         return state, reward, end_episode, {step}
 
@@ -196,7 +188,6 @@ class PlatformEnv(gym.Env):
         # Move the player
         position = self.world.player.position
         start_position = self.world.player.start_position
-        print('position[1] is {}, start_position[1] is {}'.format(position[1], start_position[1]))
         self.player_trans.set_translation(position[0] - start_position[0],
             position[1] - start_position[1])
 

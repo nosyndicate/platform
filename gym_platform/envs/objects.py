@@ -6,34 +6,36 @@ PLATFORMS_WIDTH = [250, 275, 50]
 PLATFORM_HEIGHT = 40
 PLATFORMS_X = [0.0, 475, 985]
 PLATFORMS_Y = [0.0, 0.0, 0.0]
+
 # Width of the gaps
 GAPS = [225, 235]
 
+# Max of something
 MAX_HEIGHT = max(1.0, max(PLATFORMS_Y))
 MAX_PLATWIDTH = max(PLATFORMS_WIDTH)
 MAX_WIDTH = sum(PLATFORMS_WIDTH + GAPS)
 MAX_GAP = max(GAPS)
 
-# Duration of a time unit, some action may last several time unit
+# Duration of a time unit, some action may last several time units
 DT = 0.05
 
+# Max velocity on x-axis and y-axis
 MAX_DX = 100.0
 MAX_DY = 200.0
 # Max x-axis velocity for player on the platform
 MAX_DX_ON_PLATFORM = 70.0
+
 # Max x-axis acceleration
 MAX_DDX = (MAX_DX - MAX_DX_ON_PLATFORM) / DT
 # Max y-axis acceleration
 MAX_DDY = MAX_DY / DT
-# Agent movement speed
+
+# Some other constants
 ENEMY_SPEED = 30.0
 LEAP_DEV = 1.0
 HOP_DEV = 1.0
 ENEMY_NOISE = 0.5
-CHECK_SCALE = False
 GRAVITY = 9.8
-
-
 
 
 def point(x, y):
@@ -45,7 +47,7 @@ def point(x, y):
 
 def vector(x, y):
     """
-    Return a numpy array represent a vector in 2D surface
+    Return a numpy array represent a vector in 2D space
     """
     return point(x, y)
 
@@ -53,6 +55,15 @@ def vector(x, y):
 def bound(value, lower_b, upper_b):
     """
     Clips off a value which exceeds the lower or upper bounds.
+
+    Parameters
+    ----------
+    lower_b (float): lower bound of value
+    upper_b (float): upper bound of value
+
+    Returns
+    -------
+    value (float): clipped value in [lower_b, upper_b]
     """
     if value < lower_b:
         return lower_b
@@ -82,27 +93,26 @@ class Platform(object):
 
 class Agent(object):
     """
-    Defines the enemy.
+    Defines the agent (enemy).
     """
     size = vector(20.0, 30.0)
 
     def __init__(self, platform):
         """
-        Initialize the enemy on the platform.
+        Initialize the agent on the platform.
+
+        Parameters
+        ----------
+        platform (Platform): The platform this agent belong to.
         """
         self.platform = platform
 
-        # Define properties of agent.
-        # dx is the velocity of enemy on x-axis
-        self.dx = -ENEMY_SPEED
-        # Set the the position of agent to the end of platform
-        self.position = self.platform.size + self.platform.position
-        # Due to size of agent, need to move it a little inside
-        self.position[0] -= self.size[0]
+        # Set the status of agent
+        self.reset()
 
         # Set the leftmost and rightmost position the agent can be
         self.leftmost = self.platform.position[0]
-        self.rightmost = self.position[0]
+        self.rightmost = self.platform.position[0] + self.platform.size[0] - self.size[0]
 
         # To identify the start position, used for rendering
         self.start_position = self.position.copy()
@@ -111,17 +121,20 @@ class Agent(object):
         """
         Reset the location of agent.
         """
+        # dx is the velocity of enemy on x-axis
         self.dx = -ENEMY_SPEED
+        # Set the the position of agent to the end of platform
         self.position = self.platform.size + self.platform.position
+        # Due to size of agent, need to move it a little inside
         self.position[0] -= self.size[0]
 
     def update(self, dt):
         """
-        Shift the enemy along the platform.
+        Shift the agent along the platform.
 
         Parameters
         ----------
-        dt (): time interval of movement.
+        dt (float): time interval of movement.
         """
         # If go out of the range, turn around
         if not self.leftmost < self.position[0] < self.rightmost:
@@ -146,20 +159,19 @@ class Player(Agent):
         """
         Initialize the position to the starting platform.
         """
-        # Define properties of player
-        self.position = point(0, PLATFORM_HEIGHT)
-        self.velocity = vector(0.0, 0.0)
+        # Set the status of player
+        self.reset()
 
         # To identify the start position, used for rendering
         self.start_position = self.position.copy()
 
-        # Some constant for action
+        # Some constants for different action
         self.hop_dy0 = 35.0
         self.leap_dy0 = 25.0
 
     def reset(self):
         """
-        Reset the location of agent.
+        Reset the status of agent.
         """
         self.position = point(0, PLATFORM_HEIGHT)
         self.velocity = vector(0.0, 0.0)
@@ -170,11 +182,13 @@ class Player(Agent):
 
         Parameters
         ----------
-        dt (): time interval since last update
+        dt (float): time interval since last update
         """
+        # Update position according to velocity and time
         self.position += self.velocity * dt
-        print('player position is {}'.format(self.position))
+        # Bound velocity on x-axis
         self.position[0] = bound(self.position[0], 0.0, MAX_WIDTH)
+        # Velocity decay
         self.velocity[0] *= self.velocity_decay
 
     def accelerate(self, accel, dt=DT):
@@ -183,8 +197,9 @@ class Player(Agent):
 
         Parameters
         ----------
-        accel (numpy.ndarray): A two elements numpy array,
-        dt ():
+        accel (numpy.ndarray): A two elements numpy array, specify the
+            acceleration of x-axis and y-axis
+        dt (float): time to perform acceleration
         """
         accel = bound_vector(accel, MAX_DDX, MAX_DDY)
         # Update the velocity using acceleration and time
@@ -196,7 +211,6 @@ class Player(Agent):
         # Make sure the horizontal velocity is always positive, e.g.
         # Always move forward.
         self.velocity[0] = max(self.velocity[0], 0.0)
-        # print('velocity is {}'.format(self.velocity))
 
     def ground_bound(self):
         """
@@ -204,24 +218,34 @@ class Player(Agent):
         """
         self.velocity[0] = bound(self.velocity[0], 0.0, MAX_DX_ON_PLATFORM)
 
-    def run(self, power, dt):
+    def run(self, dx_change, dt):
         """
         Run for a given power and time.
+
+        Parameters
+        ----------
+        dx_change (float): value add to velocity on x-axis, could be
+            negative
+        dt (float):
         """
         if dt > 0:
-            print('run')
-            self.accelerate(vector(power / dt, 0.0), dt)
+            self.accelerate(vector(dx_change / dt, 0.0), dt)
 
     def jump(self, power):
         """
         Jump up for a single step.
         """
-        print('jump')
         self.accelerate(vector(0.0, power / DT))
 
     def jump_to(self, diffx, dy0, dev):
         """
         Jump to a specific position.
+
+        Parameters
+        ----------
+        diffx (float):
+        dy0 (float): change of velocity along y-axis
+        dev (float): if greater than 0, we add noise to
         """
         time = 2.0 * dy0 / GRAVITY + 1.0
         dx0 = diffx / time - self.velocity[0]
@@ -230,10 +254,8 @@ class Player(Agent):
             noise = -abs(np.random.normal(0.0, dev, 2))
         else:
             noise = np.zeros((2,))
-        accel = vector(dx0, dy0) + noise
-        print('accel is {}'.format(accel))
-        self.accelerate(accel / DT)
-        print('accel is done')
+        velocity_change = vector(dx0, dy0) + noise
+        self.accelerate(velocity_change / DT)
 
     def hop_to(self, diffx):
         """
@@ -245,19 +267,19 @@ class Player(Agent):
         """
         Jump over a gap.
         """
-        print('diffx is {}, dy0 is{}'.format(diffx, self.leap_dy0))
         self.jump_to(diffx, self.leap_dy0, LEAP_DEV)
 
     def fall(self):
         """
         Apply gravity.
         """
-        print('fall')
         self.accelerate(vector(0.0, -GRAVITY))
 
     def decollide(self, other):
         """
         Shift overlapping entities apart.
+
+        other (Agent):
         """
         precorner = other.position - self.size
         postcorner = other.position + other.size
@@ -291,10 +313,9 @@ class Player(Agent):
 
     def on_platform(self, platform):
         """
-        Checks the player is standing on the platform.
+        Checks the player is standing on (attached to) the platform.
         """
         on_y = self.position[1] - platform.position[1] == platform.size[1]
-        # print('value is {}, {}, and {}'.format(self.position[1], platform.position[1], platform.size[1]) )
         return self.above_platform(platform) and on_y
 
     def colliding(self, other):
@@ -331,7 +352,7 @@ class PlatformWorld(object):
         for index in range(2):
             self.enemies.append(Agent(self.platforms[index]))
 
-        # states
+        # Used to record the position of all agents
         self.states = []
 
     def reset(self):
@@ -342,6 +363,10 @@ class PlatformWorld(object):
         for enemy in self.enemies:
             enemy.reset()
         self.player.reset()
+        self.x_pos = 0.0
+
+        # Clear the buffer
+        self.states = []
         return self.get_state()
 
     def platform_features(self, state):
@@ -357,7 +382,7 @@ class PlatformWorld(object):
             gap = GAPS[0]
             diff = PLATFORMS_Y[1] - PLATFORMS_Y[0]
         elif xpos < PLATFORMS_WIDTH[0] + GAPS[0] + PLATFORMS_WIDTH[1] + GAPS[1]:
-            pos = PLATFORMS_WIDTH[0] + GAP1
+            pos = PLATFORMS_WIDTH[0] + GAPS[0]
             wd1 = PLATFORMS_WIDTH[1]
             wd2 = PLATFORMS_WIDTH[2]
             gap = GAPS[1]
@@ -387,6 +412,7 @@ class PlatformWorld(object):
             enemy.dx
         ])
 
+        # Append the extra features
         extra_features = self.platform_features(state)
         state = np.append(state, extra_features)
         return state
@@ -407,7 +433,6 @@ class PlatformWorld(object):
         if self.on_platforms():
             if action:
                 action, parameters = action
-                print('action_str is {}, action_param is {}'.format(action, parameters))
                 if action == 'jump':
                     self.player.jump(parameters)
                 elif action == 'run':
@@ -439,67 +464,76 @@ class PlatformWorld(object):
         """
         Determines if the episode is ended, and the reward.
         """
-        end_episode = self.player.position[1] < self.lower_bound() + PLATFORM_HEIGHT
-        right = self.player.position[0] >= self.right_bound()
+        # If we fall over the platform, episode over.
+        done = self.player.position[1] < self.lower_bound() + PLATFORM_HEIGHT
+
+        # If collide with enemy, episode over.
         for entity in self.enemies:
             if self.player.colliding(entity):
-                end_episode = True
+                done = True
+
+        # If we go over the boundary, game over.
+        right = self.player.position[0] >= self.right_bound()
         if right:
             reward = (self.right_bound() - self.x_pos) / self.right_bound()
-            end_episode = True
-        return reward, end_episode
+            done = True
+        return reward, done
 
-    def update(self, action, dt=DT, interface=False):
+    def update(self, action, dt=DT):
         """
         Performs a single transition with the given action,
         then returns the new state and a reward.
         """
-        if interface:
-            self.xpos = self.player.position[0]
         self.states.append([self.player.position.copy(),
                             self.enemies[0].position.copy(),
                             self.enemies[1].position.copy()])
+
         self.perform_action(action, dt)
 
+        # Bound the velocity of player if is at floor
         if self.on_platforms():
             self.player.ground_bound()
 
+        # Determine which enemy should move
         if self.player.position[0] > self.platforms[1].position[0]:
             enemy = self.enemies[1]
         else:
             enemy = self.enemies[0]
 
+        # Update the position of agents
         for entity in [self.player, enemy]:
             entity.update(dt)
 
+        # Test if we landed at any platform
         for platform in self.platforms:
             if self.player.colliding(platform):
                 self.player.decollide(platform)
                 self.player.velocity[0] = 0.0
-        reward = (self.player.position[0] - self.xpos) / self.right_bound()
+        # The reward for that step is the change in x value at that step
+        reward = (self.player.position[0] - self.x_pos) / self.right_bound()
         return self.terminal_check(reward)
 
     def take_action(self, action, env):
         ''' Take a full, stabilised update. '''
-        end_episode = False
+        done = False
         run = True
         act, params = action
-        self.xpos = self.player.position[0]
+        # Record the position before the step for later reward computation
+        self.x_pos = self.player.position[0]
         step = 0
         difft = 1.0
         while run:
             env.render()
-            if act == "run":
-                reward, end_episode = self.update(('run', abs(params)), DT)
+            if act == 'run':
+                reward, done = self.update(('run', abs(params)), DT)
                 difft -= DT
                 run = difft > 0
             elif act in ['jump', 'hop', 'leap']:
-                reward, end_episode = self.update(action)
+                reward, done = self.update(action)
                 run = not self.on_platforms()
                 action = None
-            if end_episode:
+            if done:
                 run = False
             step += 1
-        print('out of while loop')
         state = self.get_state()
-        return state, reward, end_episode, step
+        return state, reward, done, step
