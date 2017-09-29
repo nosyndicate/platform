@@ -51,7 +51,7 @@ class PlatformEnv(gym.Env):
         'video.frame_per_second': FPS
     }
 
-    def __init__(self, call_render=False):
+    def __init__(self):
         """
         Create the world and setup the action and observation spaces
 
@@ -64,7 +64,9 @@ class PlatformEnv(gym.Env):
         """
         self._seed()
         self.viewer = None
-        self.call_render = call_render
+        self.call_render = False
+        self.mode = 'human'
+        self.close = False
 
         self._create_world()
         self._reset()
@@ -315,7 +317,7 @@ class PlatformEnv(gym.Env):
         # Keep updating until we finish the selected action
         while step_unfinished:
             if self.call_render:
-                self.render()
+                self.render_replacement()
             if action_str == 'run':
                 reward, done = self.update(('run', abs(action_param)), DT)
                 step_duration -= DT
@@ -328,8 +330,37 @@ class PlatformEnv(gym.Env):
             if done:
                 step_unfinished = False
             step += 1
+
+        # Finish the loop, set the render flag to False
+        self.call_render = False
         state = self.get_state()
         return state, reward, done, {step}
+
+    def render(self, mode='human', close=False):
+        """
+        Due to the special structure of action, we need to call the
+        render within the step function to have smoooth animation.
+
+        Thus, to be compatible with the old way of calling render,
+        we only set the flag for rendering here, also passes some
+        arguments.
+        """
+        self.call_render = True
+        self.mode = mode
+        self.close = close
+
+    def render_replacement(self):
+        """
+        This code copied from the core.py from gym. And we call
+        this method inside the step function.
+        """
+        if not self.close: # then we have to check rendering mode
+            modes = self.metadata.get('render.modes', [])
+            if len(modes) == 0:
+                raise error.UnsupportedMode('{} does not support rendering (requested mode: {})'.format(self, self.mode))
+            elif self.mode not in modes:
+                raise error.UnsupportedMode('Unsupported rendering mode: {}. (Supported modes for {}: {})'.format(self.mode, self, modes))
+        return self._render(mode=self.mode, close=self.close)
 
     def _reset(self):
         """

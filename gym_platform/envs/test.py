@@ -9,7 +9,7 @@ for index in range(1000):
     # Set the flag to render
     # Note: The env is wrapped in another env, so we need to go
     # one layer deeper.
-    env.env.call_render = True
+    env.render()
     state, r, done, other = env.step(env.action_space.sample())
     if done:
         env.reset()
