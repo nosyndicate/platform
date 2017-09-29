@@ -334,7 +334,7 @@ class PlatformEnv(gym.Env):
         # Finish the loop, set the render flag to False
         self.call_render = False
         state = self.get_state()
-        return state, reward, done, {step}
+        return state, reward, done, dict(step=step)
 
     def render(self, mode='human', close=False):
         """
