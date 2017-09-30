@@ -66,7 +66,7 @@ class PlatformEnv(gym.Env):
         self.viewer = None
         self.call_render = False
         self.mode = 'human'
-        self.close = False
+        self.will_close = False
 
         self._create_world()
         self._reset()
@@ -347,20 +347,20 @@ class PlatformEnv(gym.Env):
         """
         self.call_render = True
         self.mode = mode
-        self.close = close
+        self.will_close = close
 
     def render_replacement(self):
         """
         This code copied from the core.py from gym. And we call
         this method inside the step function.
         """
-        if not self.close: # then we have to check rendering mode
+        if not self.will_close: # then we have to check rendering mode
             modes = self.metadata.get('render.modes', [])
             if len(modes) == 0:
                 raise error.UnsupportedMode('{} does not support rendering (requested mode: {})'.format(self, self.mode))
             elif self.mode not in modes:
                 raise error.UnsupportedMode('Unsupported rendering mode: {}. (Supported modes for {}: {})'.format(self.mode, self, modes))
-        return self._render(mode=self.mode, close=self.close)
+        return self._render(mode=self.mode, close=self.will_close)
 
     def _reset(self):
         """
