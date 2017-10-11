@@ -114,13 +114,22 @@ class PlatformEnv(gym.Env):
 
         # Since the five additional features are all ratios in range [0, 1],
         # we set this as our observation space.
+        # high = np.array([
+        #     MAX_WIDTH, MAX_DX, MAX_WIDTH, ENEMY_SPEED, 1.0, 1.0, 1.0, 1.0, 1.0
+        # ])
+
         high = np.array([
-            MAX_WIDTH, MAX_DX, MAX_WIDTH, ENEMY_SPEED, 1.0, 1.0, 1.0, 1.0, 1.0
+            MAX_WIDTH, MAX_DX, MAX_WIDTH, ENEMY_SPEED
         ])
 
+        # low = np.array([
+        #     -self.player.size[0], 0.0, 0.0, -ENEMY_SPEED, 0.0, 0.0, 0.0, 0.0, 0.0
+        # ])
+
         low = np.array([
-            -self.player.size[0], 0.0, 0.0, -ENEMY_SPEED, 0.0, 0.0, 0.0, 0.0, 0.0
+            -self.player.size[0], 0.0, 0.0, -ENEMY_SPEED
         ])
+
         self.observation_space = spaces.Box(low, high)
 
     def _create_world(self):
@@ -192,7 +201,7 @@ class PlatformEnv(gym.Env):
 
         # Append the extra features
         extra_features = self.platform_features(state)
-        state = np.append(state, extra_features)
+        # state = np.append(state, extra_features)
         return state
 
     def on_platforms(self):
@@ -305,8 +314,11 @@ class PlatformEnv(gym.Env):
             for all the discrete actions.
         """
         # TODO (ewei), action dispatcher seems stupid
+        # print(action)
         action_str = ACTION_LOOKUP[action[0]]
         action_param = action[action[0] + 1]
+        # print('action is {}-{}'.format(action[0], action_param))
+        # print('============================')
         # Record the position before the step for later reward computation
         self.x_pos = self.player.position[0]
         done = False
