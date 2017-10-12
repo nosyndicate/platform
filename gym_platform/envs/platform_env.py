@@ -114,21 +114,21 @@ class PlatformEnv(gym.Env):
 
         # Since the five additional features are all ratios in range [0, 1],
         # we set this as our observation space.
-        # high = np.array([
-        #     MAX_WIDTH, MAX_DX, MAX_WIDTH, ENEMY_SPEED, 1.0, 1.0, 1.0, 1.0, 1.0
-        # ])
-
         high = np.array([
-            MAX_WIDTH, MAX_DX, MAX_WIDTH, ENEMY_SPEED
+            MAX_WIDTH, MAX_DX, MAX_WIDTH, ENEMY_SPEED, 1.0, 1.0, 1.0, 1.0, 1.0
         ])
 
-        # low = np.array([
-        #     -self.player.size[0], 0.0, 0.0, -ENEMY_SPEED, 0.0, 0.0, 0.0, 0.0, 0.0
+        # high = np.array([
+        #     MAX_WIDTH, MAX_DX, MAX_WIDTH, ENEMY_SPEED
         # ])
 
         low = np.array([
-            -self.player.size[0], 0.0, 0.0, -ENEMY_SPEED
+            -self.player.size[0], 0.0, 0.0, -ENEMY_SPEED, 0.0, 0.0, 0.0, 0.0, 0.0
         ])
+
+        # low = np.array([
+        #     -self.player.size[0], 0.0, 0.0, -ENEMY_SPEED
+        # ])
 
         self.observation_space = spaces.Box(low, high)
 
@@ -201,7 +201,7 @@ class PlatformEnv(gym.Env):
 
         # Append the extra features
         extra_features = self.platform_features(state)
-        # state = np.append(state, extra_features)
+        state = np.append(state, extra_features)
         return state
 
     def on_platforms(self):
