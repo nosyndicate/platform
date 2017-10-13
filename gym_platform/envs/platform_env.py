@@ -292,10 +292,11 @@ class PlatformEnv(gym.Env):
             entity.update(dt)
 
         # Test if we landed at any platform
-        for platform in self.platforms:
+        for i, platform in enumerate(self.platforms):
             if self.player.colliding(platform):
                 self.player.decollide(platform)
                 self.player.velocity[0] = 0.0
+
         # The reward for that step is the change in x value at that step
         reward = (self.player.position[0] - self.x_pos) / self.right_bound()
         return self.terminal_check(reward)
@@ -314,11 +315,9 @@ class PlatformEnv(gym.Env):
             for all the discrete actions.
         """
         # TODO (ewei), action dispatcher seems stupid
-        # print(action)
         action_str = ACTION_LOOKUP[action[0]]
         action_param = action[action[0] + 1]
-        # print('action is {}-{}'.format(action[0], action_param))
-        # print('============================')
+
         # Record the position before the step for later reward computation
         self.x_pos = self.player.position[0]
         done = False
