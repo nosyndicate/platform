@@ -13,6 +13,21 @@ class ContinuousField(object):
 		self.width = width
 		self.height = height
 
+
+	def sx(self, x):
+		if x > self.width:
+			return self.width
+		elif x < 0:
+			return 0
+		else:
+			return x
+	def sy(self, y):
+		if y > self.height:
+			return self.height
+		elif y < 0:
+			return 0
+		else:
+			return y
 	# Simple [and fast] toroidal x.  Use this if the values you'd pass in never
 	# stray beyond (-width ... width * 2) not inclusive.
 	def stx(self, x):
@@ -51,7 +66,11 @@ class ContinuousField(object):
 
 		return dx
 
+	def dx(self, x1, x2):
+		return x1 - x2
 
+	def dy(self, y1, y2):
+		return y1 - y2
 
 	def tdy(self, y1, y2, height):
 		height = self.height
@@ -75,83 +94,80 @@ class ContinuousField(object):
 		return self.tdx(x1, x2, self.width), self.tdy(y1, y2, self.height)
 
 class Ball():
-	def __init__(self, step_size, field):
-		self.x_pos = 50.0
-		self.y_pos = 50.0
+	def __init__(self, step_size, field, initX, initY, size):
+		self.x_pos = initX
+		self.y_pos = initY
 		self.theta = math.pi/4;
 		self.step_size = step_size;
 		self.field = field;
-
-	def do_step(self,delta):
-		self.theta+=delta;
-		sin_theta = math.sin(self.theta)
-		cos_theta = math.cos(self.theta)
-		x_change = cos_theta * self.step_size
-		y_change = sin_theta * self.step_size
+		self.size = size
+	def do_step(self,xvel, yvel):
+		
+		x_change = xvel * self.step_size
+		y_change = yvel * self.step_size
 		#print("xpos is " + str(self.x_pos))
-		self.x_pos = self.field.stx(self.x_pos+x_change);
-		self.y_pos = self.field.sty(self.y_pos+y_change);
+
+
+		self.x_pos = self.field.sx(self.x_pos+x_change);
+		self.y_pos = self.field.sy(self.y_pos+y_change);
+	def get_dist(self,ball):
+		return math.sqrt((self.field.tx(ball.x_pos,self.x_pos))*((self.field.tx(ball.x_pos,self.x_pos))) + (self.field.ty(self.y_pos,ball.y_pos))*(self.field.ty(self.y_pos,ball.y_pos)))
+	def colliding_with(self,ball):
+		if self.id ==  ball.id:
+			return False
+		if(self.get_dist(ball) < self.size + ball.size):
+				return True;
+		return False;
+
+
 class Box():
-	def __init__(self, step_size, field,index):
-		self.x_pos = 100
-		self.y_pos = 300+index*50
-		self.step_size = step_size;
-		self.field = field;
-	def do_step(self,balls,index):
-		self.theta+=delta;
-		goalPos = 0.0
-		if(index == 0):
-			min_x = 0.0;
-			for i in range(0,2):
-				if(balls[i].x_pos < min_x):
-					min_x = balls[i].x_pos;
-			goalPos=min_x;
-		else:
-			max_x = 0.0;
-			for i in range(0,2):
-				if(balls[i].x_pos > max_x):
-					max_x = balls[i].x_pos;
-			goalPos=max_x;
+	def __init__(self, field, xpos_left, ypos_left, xpos_right, ypos_right, height):
 
-		direction = 1;
-		if(self.x_pos < goalPos):
-			direction = -1;
-		x_change = self.step_size*direction;
+		## these define the line that is the bottom of the rectangle
+		## then height is how high the rectange is so translate the y coordinates +height
+		self.x_pos_left = xpos_left
+		self.x_pos_right = xpos_right
+		self.y_pos_left = ypos_left
+		self.y_pos_right = ypos_right
+		self.size = height
+		self.field = field
+	
+	def lineCollides(self, startx, starty, endx, endy):
+		#Output
+		# True if lines collide
+		denom = ((endy – starty) * (self.x_pos_right – self.x_pos_left)) –
+		((endx – startx) * (self.y_pos_right - self.y_pos_left))
+		return denom != 0
 
-
-		self.x_pos = self.field.stx(self.x_pos+x_change);
-		self.y_pos = self.field.sty(self.y_pos+y_change);
 class NarrowEnv(gym.Env):
 	metadata = {
 		'render.modes': ['human', 'rgb_array'],
 		'video.frames_per_second' : 50
 	}
 	def get_num_agents(self):
-		return 3
+		return 2
 
 	def __init__(self, num_agents):
 		self.field = ContinuousField(400,400)
-		self.num_balls = 3;
+		self.num_balls = num_agents;
 		self.max_step = 10.0;
+		self.circleDiameter = 5.0
+		self.circleRadius = self.circleDiameter / 2.0
+		self.BoxHeight = self.circleDiameter
 		self.balls = []
 		for i in range(self.num_balls):
-			self.balls.append(Ball(self.max_step, self.field))
+			self.balls.append(Ball(self.max_step, self.field, 3, 4, self.circleDiameter))
 
 		self.num_boxes = 2;
 		self.boxes = []
-		for i in range(self.num_boxes):
-			self.boxes.append(Box(self.max_step, self.field,i))
-		self.ballCircles = [];
-		self.ballTrans = [];
-		# Angle at which to fail the episode
-		self.theta_threshold_radians = 12 * 2 * math.pi / 360
-		self.x_threshold = 2.4
-
-		# Angle limit set to 2 * theta_threshold_radians so failing observation is still within bounds
+		self.boxes.append(Box(self.field, 0, self.field.height / 2., self.field.width / 2. - self.circleRadius * 1.5, self.field.height / 2., self.BoxHeight))
+		self.boxes.append(Box(self.field, self.field.width / 2. + self.circleRadius * 1.5, self.field.height / 2., self.field.width, self.field.height / 2., self.BoxHeight))
+		
+		
 		self.num_agents = num_agents
 
-		self.action_space = spaces.Box(0,.5, shape=(self.num_balls,))
-		self.observation_space = spaces.Box(0,400, shape=(self.num_balls+self.num_boxes,2))
+		self.action_space = spaces.Box(low=-1.,high=1., shape=(self.num_balls,2))
+		self.observation_space = spaces.Box(0,400, shape=(self.num_balls,2))
 
 		self._seed()
 		self.viewer = None
@@ -170,13 +186,31 @@ class NarrowEnv(gym.Env):
 		done = False;
 		ballPositionArray=np.zeros((self.num_balls,2));
 		for i in range(self.num_balls):
-			self.balls[i].do_step(action[i]);
-			ballPositionArray[i][0] = self.balls[i].x_pos;
-			ballPositionArray[i][1] = self.balls[i].y_pos;
-			if(ballPositionArray[i][1] > 360):
-				done = True;
-		if(done):
-			reward = 1;
+			prevx = self.balls[i].x_pos
+			prevy = self.balls[i].y_pos
+			self.balls[i].do_step(action[i])
+			collide = False
+			for i in range(self.num_balls):
+				if self.balls[i].colliding_with(self.balls[i]):
+					collide = True
+			if collide:
+
+			else:
+				## now check if the agent collided with the boxes
+				boxCollide = False
+				for i in range(len(self.boxes)):
+					if (self.boxes[i].lineCollides(prevx, prevy, self.balls[i].x_pos,self.balls[i].y_pos) or
+						self.boxes[i].lineCollides(prevx - self.circleRadius, prevy, self.balls[i].x_pos - self.circleRadius, self.balls[i].y_pos) or
+						self.boxes[i].lineCollides(prevx + self.circleRadius, prevy, self.balls[i].x_pos + self.circleRadius, self.balls[i].y_pos)):
+						## then we have intersected with a box so reset
+						self.balls[i].x_pos = prevx
+						self.balls[i].y_pos = prevy
+						ballPositionArray[i][0] = prevx
+						ballPositionArray[i][1] = prevy
+						boxCollide = True
+				if boxCollide == false:
+					ballPositionArray[i][0] = self.balls[i].x_pos;
+					ballPositionArray[i][1] = self.balls[i].y_pos;
 
 		return ballPositionArray, reward, done, {}
 
