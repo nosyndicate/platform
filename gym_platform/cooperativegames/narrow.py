@@ -121,7 +121,7 @@ class Box():
 
 		self.x_pos = self.field.stx(self.x_pos+x_change);
 		self.y_pos = self.field.sty(self.y_pos+y_change);
-class CartPoleEnv2(gym.Env):
+class NarrowEnv(gym.Env):
 	metadata = {
 		'render.modes': ['human', 'rgb_array'],
 		'video.frames_per_second' : 50

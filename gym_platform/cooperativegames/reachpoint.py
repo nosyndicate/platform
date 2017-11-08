@@ -193,7 +193,7 @@ class gazelle():
 		if(self.get_dist(lion) < self.size + lion.size):
 				return True;
 		return False;
-class CartPoleEnv2(gym.Env):
+class ReachPointEnv(gym.Env):
 	metadata = {
 		'render.modes': ['human', 'rgb_array'],
 		'video.frames_per_second' : 50
