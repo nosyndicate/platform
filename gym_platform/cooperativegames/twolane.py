@@ -107,9 +107,10 @@ class Ball():
 		self.radius = size / 2.0
 		self.id = id
 
+	def setDestPoint(self, dest):
+		self.dest = dest
 	def getPoints(self, prevX, prevY):
 		return [[MyPoint(self.x_pos, self.y_pos), MyPoint(prevX, prevY)], [MyPoint(self.x_pos, self.y_pos + self.radius), MyPoint(prevX, prevY + self.radius)], [MyPoint(self.x_pos, self.y_pos - self.radius), MyPoint(prevX, prevY - self.radius)], [MyPoint(self.x_pos + self.radius, self.y_pos), MyPoint(prevX + self.radius, prevY)], [MyPoint(self.x_pos - self.radius, self.y_pos), MyPoint(prevX - self.radius, prevY)]]
-
 
 	def do_step(self,xvel, yvel):
 		x_change = xvel * self.step_size
@@ -126,6 +127,8 @@ class Ball():
 		if(self.get_dist(ball) < self.radius + ball.radius):
 			return True
 		return False
+	def currentReward(self):
+		return 1. / math.sqrt(math.pow((self.x_pos - self.dest.x),2) + math.pow((self.y_pos - self.dest.y),2))
 
 class MyPoint():
 	def __init__(self, x, y):
@@ -143,7 +146,9 @@ class Box():
 		self.y_pos_right = ypos_right
 		self.size = height
 		#[(l,b), (l,t), (r,t), (r,b)]
-		self.rect = [(self.x_pos_left, self.y_pos_left), (self.x_pos_left, self.y_pos_left + self.size), (self.x_pos_right, self.y_pos_right+self.size), (self.x_pos_right, self.y_pos_right)]
+		#self.rect = [(self.x_pos_left, self.y_pos_left), (self.x_pos_left, self.y_pos_left + self.size), (self.x_pos_right, self.y_pos_right+self.size), (self.x_pos_right, self.y_pos_right)]
+		self.rect = [[self.x_pos_left, self.y_pos_left], [self.x_pos_left, self.y_pos_left + self.size], [self.x_pos_right, self.y_pos_right+self.size], [self.x_pos_right, self.y_pos_right]]
+		print("({}, {}) ({}, {})".format(self.x_pos_left, self.y_pos_left, self.x_pos_right, self.y_pos_right))
 		self.bottomLeft = MyPoint(self.x_pos_left, self.y_pos_left)
 		self.topLeft = MyPoint(self.x_pos_left, self.y_pos_left + self.size)
 		self.topRight = MyPoint(self.x_pos_right, self.y_pos_right+self.size)
@@ -222,7 +227,7 @@ class TwoLaneEnv(gym.Env):
 		else:
 			self.field = ContinuousField(100,200)
 			self.num_balls = self.get_num_agents();
-			self.max_step = 2.5;
+			self.max_step = 1.;
 			self.circleDiameter = 5.0
 			self.circleRadius = self.circleDiameter / 2.0
 			self.BoxHeight = self.circleDiameter * 10
@@ -231,9 +236,10 @@ class TwoLaneEnv(gym.Env):
 			## we are on the same side of the passage and we need to make it to the otherside
 			# bottom left ball
 			self.balls.append(Ball(self.max_step, self.field, self.circleDiameter ,  self.circleDiameter, self.circleDiameter, 0))
+			self.balls[0].setDestPoint(MyPoint(self.field.width / 2., self.field.height))
 			# top right ball
 			self.balls.append(Ball(self.max_step, self.field, self.field.width - self.circleDiameter, self.field.height - self.circleDiameter, self.circleDiameter, 1))
-
+			self.balls[1].setDestPoint(MyPoint(self.field.width / 2., 0))
 			self.num_boxes = 2;
 			self.boxes = []
 			# left box (0, height/2- self.BoxHeight / 2.) (width / 2 - passageWidth / 2, height/2 - self.BoxHeight / 2.)
@@ -241,11 +247,12 @@ class TwoLaneEnv(gym.Env):
 			# right box (width / 2 + passageWidth / 2, height/2 - self.BoxHeight / 2.) (width, height/2- self.BoxHeight / 2.)
 			self.boxes.append(Box(self.field, self.field.width / 2. + self.passageWidth / 2.0, self.field.height / 2. - self.BoxHeight / 2., self.field.width, self.field.height / 2. - self.BoxHeight / 2., self.BoxHeight))
 			
+
 			
 			self.num_agents = self.get_num_agents()
 
 			self.action_space = spaces.Box(low=-1.,high=1., shape=(self.num_balls,2))
-			self.observation_space = spaces.Box(0,400, shape=(self.num_balls,2))
+			self.observation_space = spaces.Box(low=np.array([0,0,0,0]),high=np.array([self.field.width, self.field.height, self.field.width, self.field.height]))
 
 		self._seed()
 		self.viewer = None
@@ -262,7 +269,7 @@ class TwoLaneEnv(gym.Env):
 		state = self.state
 		reward  = -1;
 		done = False;
-		ballPositionArray=np.zeros((self.num_balls,2));
+		ballPositionArray=np.zeros((self.num_balls,4));
 		for i in range(self.num_balls):
 			prevx = self.balls[i].x_pos
 			prevy = self.balls[i].y_pos
@@ -297,19 +304,41 @@ class TwoLaneEnv(gym.Env):
 					ballPositionArray[i][1] = self.balls[i].y_pos;
 
 
+
+
 		## now compute the reward
 		if self.sameSide:
 			## not sure yet...
 			reward = 0
 		else:
-			reward =  0
+			reward = 0.
+			reachedSideReward = 5
+			
+			if self.balls[0].y_pos > self.boxes[0].topLeft.y:
+				reward = reward + reachedSideReward
+			else:
+				reward = reward + self.balls[0].currentReward()
 
-		return ballPositionArray, reward, done, {}
+			if self.balls[1].y_pos < self.boxes[0].bottomLeft.y:
+				reward = reward + reachedSideReward
+			else:
+				reward = reward + self.balls[i].currentReward()
+
+		return self.get_state(self.balls[0], self.balls[1]), reward, done, {}
+
+
+	def get_state(self, ball1, ball2):
+		# [[my_x, my_y, rel_x, rel_y],[my_x, my_y, rel_x, rel_y]]
+		return np.array([[ball1.x_pos, ball1.y_pos, ball2.x_pos - ball1.x_pos, ball2.y_pos - ball1.y_pos], 
+		[ball2.x_pos, ball2.y_pos, ball1.x_pos - ball2.x_pos, ball1.y_pos - ball2.y_pos]])
+
 
 	def _reset(self):
 		self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
 		self.steps_beyond_done = None
-		return np.array(self.state)
+		self.num_agents = 2
+		self.state = self.get_state(self.balls[0], self.balls[1])
+		return self.state
 
 	def _render(self, mode='human', close=False):
 		if close:
@@ -318,21 +347,27 @@ class TwoLaneEnv(gym.Env):
 				self.viewer = None
 			return
 
-		screen_width = self.field.width
-		screen_height = self.field.height
+		scaleSize = 4
+		screen_width = self.field.width * scaleSize
+		screen_height = self.field.height * scaleSize
 
 		if self.viewer is None:
 			from gym.envs.classic_control import rendering
 			self.viewer = rendering.Viewer(screen_width, screen_height)
 
 			for i in range(self.num_balls):
-				self.ballCircles.append(rendering.make_circle(self.circleDiameter))
-				self.ballTrans.append(rendering.Transform(translation=(self.balls[i].x_pos, self.balls[i].y_pos)))
+				self.ballCircles.append(rendering.make_circle(self.circleRadius * scaleSize))
+				self.ballTrans.append(rendering.Transform(translation=(self.balls[i].x_pos * scaleSize, self.balls[i].y_pos * scaleSize)))
 				self.ballCircles[i].add_attr(self.ballTrans[i])
 				self.ballCircles[i].set_color(.5,.5,.8)
 				self.viewer.add_geom(self.ballCircles[i])
 			for i in range(self.num_boxes):
-				self.boxRects.append(rendering.make_polygon(self.boxes[i].rect))
+				myscalerect = self.boxes[i].rect
+				for a in myscalerect:
+					a[0] = a[0] * scaleSize
+					a[1] = a[1] * scaleSize
+				self.boxRects.append(rendering.make_polygon(myscalerect))
+				#self.boxRects.append(rendering.make_polygon(self.boxes[i].rect))
 				#self.boxTrans.append(rendering.Transform(translation=(self.balls[i].x_pos, self.balls[i].y_pos)))
 				#self.boxRects[i].add_attr(self.boxTrans[i])
 				self.boxRects[i].set_color(.5,.5,.8)
@@ -343,6 +378,6 @@ class TwoLaneEnv(gym.Env):
 
 		for i in range(self.num_balls):
 			#print("ball [{}, {}]".format(self.balls[i].x_pos, self.balls[i].y_pos))
-			self.ballTrans[i].set_translation(self.balls[i].x_pos, self.balls[i].y_pos)
+			self.ballTrans[i].set_translation(self.balls[i].x_pos * scaleSize, self.balls[i].y_pos * scaleSize)
 
 		return self.viewer.render(return_rgb_array = mode=='rgb_array')
