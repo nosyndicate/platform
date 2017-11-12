@@ -251,7 +251,7 @@ class TwoLaneEnv(gym.Env):
 			
 			self.num_agents = self.get_num_agents()
 
-			self.action_space = spaces.Box(low=-1.,high=1., shape=(self.num_balls,2))
+			self.action_space = spaces.Box(low=np.array([-1, -1, -1, -1]),high=np.array([1,1,1,1]))
 			self.observation_space = spaces.Box(low=np.array([0,0,0,0]),high=np.array([self.field.width, self.field.height, self.field.width, self.field.height]))
 
 		self._seed()
