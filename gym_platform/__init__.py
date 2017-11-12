@@ -17,3 +17,8 @@ register(
     max_episode_steps=100,
 )
 
+register(
+    id='Point-v0',
+    entry_point='gym_platform.cooperativegames:PointEnv',
+    timestep_limit=40,
+)

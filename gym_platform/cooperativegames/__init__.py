@@ -1,2 +1,3 @@
 from gym_platform.cooperativegames.twolane import TwoLaneEnv
 from gym_platform.cooperativegames.twolaneoneagent import TwoLaneOneAgentEnv
+from gym_platform.cooperativegames.pointenv import PointEnv
