@@ -178,17 +178,16 @@ class Box():
                 if self.intersect(boxSide[0], boxSide[1], circleLine[0], circleLine[1]):
                     return True
 
-class TwoLaneEnv(gym.Env):
+class TwoLaneOneAgentEnv(gym.Env):
     metadata = {
         'render.modes': ['human', 'rgb_array'],
         'video.frames_per_second' : 50
     }
     def get_num_agents(self):
-        return 2
+        return 1
 
     def __init__(self):
 
-     
 
         self.ballCircles = []
         self.ballTrans = []
@@ -222,12 +221,11 @@ class TwoLaneEnv(gym.Env):
         self.num_agents = self.get_num_agents()
 
         self.action_space = spaces.Box(
-            low=np.array([-1, -1, -1, -1]),
-            high=np.array([1, 1, 1, 1]))
+            low=np.array([-1, -1]),
+            high=np.array([1, 1]))
         self.observation_space = spaces.Box(
-            low=np.array([0, 0, 0, 0]),
-            high=np.array([self.field.width, self.field.height,
-                self.field.width, self.field.height]))
+            low=np.array([0, 0]),
+            high=np.array([self.field.width, self.field.height]))
 
         self._seed()
         self.viewer = None
@@ -246,7 +244,7 @@ class TwoLaneEnv(gym.Env):
         state = self.state
         reward  = -1;
         done = False;
-        ballPositionArray=np.zeros((self.num_balls,4));
+        ballPositionArray=np.zeros((self.num_balls,2));
         for i in range(self.num_balls):
             prevx = self.balls[i].x_pos
             prevy = self.balls[i].y_pos
@@ -293,13 +291,12 @@ class TwoLaneEnv(gym.Env):
         # else:
         #reward = reward + self.balls[1].currentReward()
 
-        return self.get_state(self.balls[0], self.balls[1]), reward, done, {}
+        return self.get_state(self.balls[0]), reward, done, {}
 
 
-    def get_state(self, ball1, ball2):
+    def get_state(self, ball1):
         # [[my_x, my_y, rel_x, rel_y],[my_x, my_y, rel_x, rel_y]]
-        return np.array([[ball1.x_pos, ball1.y_pos, ball2.x_pos - ball1.x_pos, ball2.y_pos - ball1.y_pos],
-        [ball2.x_pos, ball2.y_pos, ball1.x_pos - ball2.x_pos, ball1.y_pos - ball2.y_pos]])
+        return np.array([ball1.x_pos, ball1.y_pos])
 
     def reset_state(self):
         self.balls = []
@@ -307,16 +304,16 @@ class TwoLaneEnv(gym.Env):
         # bottom left ball
         self.balls.append(Ball(self.max_step, self.field, self.field.width / 2.,  self.circleDiameter, self.circleDiameter, 0))
         self.balls[0].setDestPoint(MyPoint(self.field.width / 2., self.field.height))
-        # top right ball
-        self.balls.append(Ball(self.max_step, self.field, self.field.width/ 2., self.field.height - self.circleDiameter, self.circleDiameter, 1))
-        self.balls[1].setDestPoint(MyPoint(self.field.width / 2., 0))
-        self.state = self.get_state(self.balls[0], self.balls[1])
+        # # top right ball
+        # self.balls.append(Ball(self.max_step, self.field, self.field.width/ 2., self.field.height - self.circleDiameter, self.circleDiameter, 1))
+        # self.balls[1].setDestPoint(MyPoint(self.field.width / 2., 0))
+        self.state = self.get_state(self.balls[0])
 
 
     def _reset(self):
         self.state = self.np_random.uniform(low=-0.05, high=0.05, size=(4,))
         self.steps_beyond_done = None
-        self.num_agents = 2
+        self.num_agents = 1
         self.reset_state()
         return self.state
 
