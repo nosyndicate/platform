@@ -1,3 +1,1 @@
-from gym_platform.cooperativegames.narrow import NarrowEnv
-from gym_platform.cooperativegames.reachpoint import ReachPointEnv
 from gym_platform.cooperativegames.twolane import TwoLaneEnv

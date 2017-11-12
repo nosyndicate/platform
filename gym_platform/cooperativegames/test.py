@@ -12,6 +12,7 @@ for index in range(1000):
     env.render()
     #print(env.action_space.sample())
     state, r, done, other = env.step(env.action_space.sample())
+    print(r)
     assert(isinstance(other, dict))
     if done:
         env.reset()
