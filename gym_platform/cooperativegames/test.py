@@ -11,7 +11,10 @@ for index in range(1000):
     # one layer deeper.
     env.render()
     #print(env.action_space.sample())
-    state, r, done, other = env.step(env.action_space.sample())
+    action = env.action_space.sample()
+    action.fill(1)
+    print(action)
+    state, r, done, other = env.step(action)
     print(r)
     assert(isinstance(other, dict))
     if done:
